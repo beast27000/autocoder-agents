@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { QueryForm } from './components/QueryForm.tsx';
-import { CodeOutput } from './components/CodeOutput.tsx';
-import { LoadingState } from './components/LoadingState.tsx';
+import { QueryForm } from './components/QueryForm';
+import { CodeOutput } from './components/CodeOutput';
+import { LoadingState } from './components/LoadingState';
 
 interface CodeResponse {
   code: string;
