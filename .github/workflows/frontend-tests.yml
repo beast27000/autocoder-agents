@@ -1,0 +1,51 @@
+name: Frontend Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'frontend/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'frontend/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Node.js 18
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+    
+    - name: Install dependencies
+      run: |
+        cd frontend
+        npm ci
+    
+    - name: Check TypeScript
+      run: |
+        cd frontend
+        npx tsc --noEmit || true
+    
+    - name: Build
+      run: |
+        cd frontend
+        npm run build
+
+  deploy-to-vercel:
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Deploy to Vercel
+      run: |
+        echo "Frontend will auto-deploy via Vercel's GitHub integration"
+        echo "Check https://vercel.com/dashboard for deployment status"

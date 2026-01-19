@@ -1,0 +1,31 @@
+{
+  "name": "autocoder-agents",
+  "version": "1.0.0",
+  "description": "AI-Powered Multi-Agent Code Generation Assistant",
+  "private": true,
+  "scripts": {
+    "setup": "cd backend && python -m venv venv && cd ../frontend && npm install",
+    "dev": "concurrently \"cd backend && source venv/bin/activate && uvicorn main:app --reload\" \"cd frontend && npm start\"",
+    "backend:dev": "cd backend && source venv/bin/activate && uvicorn main:app --reload --port 8000",
+    "frontend:dev": "cd frontend && npm start",
+    "backend:build": "cd backend && pip install -r requirements.txt",
+    "frontend:build": "cd frontend && npm run build",
+    "build": "npm run backend:build && npm run frontend:build",
+    "test:backend": "cd backend && python -m pytest",
+    "test:frontend": "cd frontend && npm test",
+    "format": "cd frontend && npm run format && cd ../backend && black ."
+  },
+  "keywords": [
+    "AI",
+    "Code Generation",
+    "Multi-Agent",
+    "crewAI",
+    "React",
+    "FastAPI"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  }
+}

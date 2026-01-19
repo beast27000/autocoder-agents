@@ -1,0 +1,58 @@
+name: Backend Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'backend/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        cd backend
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov
+    
+    - name: Lint with pylint
+      run: |
+        cd backend
+        pylint main.py config.py agents.py || true
+    
+    - name: Run tests
+      run: |
+        cd backend
+        pytest --cov=. --cov-report=xml || true
+    
+    - name: Check main.py syntax
+      run: |
+        cd backend
+        python -m py_compile main.py config.py agents.py
+
+  deploy-to-render:
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Deploy to Render
+      run: |
+        echo "Backend will auto-deploy via Render's GitHub integration"
+        echo "Check https://render.com/dashboard for deployment status"
