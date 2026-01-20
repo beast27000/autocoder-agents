@@ -8,6 +8,8 @@ import time
 import traceback
 from datetime import datetime
 import os
+import requests
+import json
 from dotenv import load_dotenv
 
 load_dotenv()
