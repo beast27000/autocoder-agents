@@ -92,20 +92,104 @@ class AgentsListResponse(BaseModel):
 # ============ Mock Orchestrator (Replace with actual crewAI) ============
 
 class MockOrchestrator:
-    """Mock orchestrator for testing - replace with actual crewAI implementation"""
+    """AI-powered orchestrator using OpenRouter API"""
     
     def __init__(self):
         self.api_key = settings.openrouter_api_key
         self.model = settings.primary_model
+        self.base_url = settings.openrouter_base_url
     
     def process_query(self, query_request: QueryRequest) -> CodeGenerationOutput:
-        """Process user query and generate code"""
+        """Process user query and generate code using OpenRouter API"""
         try:
-            language = query_request.language
+            # Create the prompt for the AI
+            prompt = f"""You are an expert software developer. Generate high-quality, production-ready code for the following request:
+
+Request: {query_request.query}
+Language: {query_request.language}
+Context: {query_request.context if query_request.context else 'No additional context provided'}
+
+Please provide:
+1. Complete, working code that solves the request
+2. Brief explanation of the solution
+3. Code complexity level (low/medium/high)
+
+Focus on:
+- Clean, readable code
+- Proper error handling
+- Best practices for the chosen language
+- Complete implementation (not just templates)
+
+Return the response in this exact JSON format:
+{{
+    "code": "the complete code here",
+    "explanation": "brief explanation of the solution",
+    "complexity": "low|medium|high"
+}}"""
+
+            # Make API call to OpenRouter
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://autocoder-agents.onrender.com",
+                "X-Title": "AutoCoder Agents"
+            }
             
-            # Generate basic code template based on language
-            code_templates = {
-                "python": f"""# Python Solution for: {query_request.query}
+            payload = {
+                "model": self.model,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                "temperature": 0.3,
+                "max_tokens": 2000
+            }
+            
+            response = requests.post(
+                f"{self.base_url}/chat/completions",
+                headers=headers,
+                json=payload,
+                timeout=30
+            )
+            
+            if response.status_code != 200:
+                raise Exception(f"OpenRouter API error: {response.status_code} - {response.text}")
+            
+            result = response.json()
+            content = result["choices"][0]["message"]["content"]
+            
+            # Try to parse JSON response
+            try:
+                parsed = json.loads(content)
+                code = parsed.get("code", content)
+                explanation = parsed.get("explanation", "Generated code solution")
+                complexity = parsed.get("complexity", "medium")
+            except json.JSONDecodeError:
+                # If not JSON, use the raw content as code
+                code = content
+                explanation = "Generated code solution using AI"
+                complexity = "medium"
+            
+            return CodeGenerationOutput(
+                code=code.strip(),
+                explanation=explanation,
+                language=query_request.language,
+                complexity=complexity
+            )
+        
+        except Exception as e:
+            logger.error(f"Error in process_query: {str(e)}", exc_info=True)
+            # Fallback to basic template if API fails
+            return self._get_fallback_code(query_request)
+    
+    def _get_fallback_code(self, query_request: QueryRequest) -> CodeGenerationOutput:
+        """Fallback method that returns basic code template when API fails"""
+        language = query_request.language
+        
+        code_templates = {
+            "python": f"""# Python Solution for: {query_request.query}
 # Context: {query_request.context if query_request.context else 'None specified'}
 
 def solution():
@@ -118,7 +202,7 @@ def solution():
 if __name__ == "__main__":
     solution()
 """,
-                "javascript": f"""// JavaScript Solution for: {query_request.query}
+            "javascript": f"""// JavaScript Solution for: {query_request.query}
 // Context: {query_request.context if query_request.context else 'None specified'}
 
 function solution() {{
@@ -128,7 +212,7 @@ function solution() {{
 
 solution();
 """,
-                "typescript": f"""// TypeScript Solution for: {query_request.query}
+            "typescript": f"""// TypeScript Solution for: {query_request.query}
 // Context: {query_request.context if query_request.context else 'None specified'}
 
 interface Config {{
@@ -141,7 +225,7 @@ function solution(): void {{
 
 solution();
 """,
-                "java": f"""// Java Solution for: {query_request.query}
+            "java": f"""// Java Solution for: {query_request.query}
 // Context: {query_request.context if query_request.context else 'None specified'}
 
 public class Solution {{
@@ -152,7 +236,7 @@ public class Solution {{
     }}
 }}
 """,
-                "cpp": f"""// C++ Solution for: {query_request.query}
+            "cpp": f"""// C++ Solution for: {query_request.query}
 // Context: {query_request.context if query_request.context else 'None specified'}
 
 #include <iostream>
@@ -165,7 +249,7 @@ int main() {{
     return 0;
 }}
 """,
-                "go": f"""// Go Solution for: {query_request.query}
+            "go": f"""// Go Solution for: {query_request.query}
 // Context: {query_request.context if query_request.context else 'None specified'}
 
 package main
@@ -178,20 +262,16 @@ func main() {{
     // TODO: Implement solution
 }}
 """,
-            }
-            
-            code = code_templates.get(language, code_templates["python"])
-            
-            return CodeGenerationOutput(
-                code=code,
-                explanation=f"Generated {language.upper()} code for: {query_request.query}. This system uses multi-agent orchestration with specialized agents for frontend, backend, testing, and documentation. Connect to real AI models via OpenRouter API to generate actual solutions.",
-                language=language,
-                complexity="low"
-            )
+        }
         
-        except Exception as e:
-            logger.error(f"Error in process_query: {str(e)}", exc_info=True)
-            raise
+        code = code_templates.get(language, code_templates["python"])
+        
+        return CodeGenerationOutput(
+            code=code,
+            explanation=f"Generated {language.upper()} code template for: {query_request.query}. (Note: This is a fallback template - the AI service may be temporarily unavailable)",
+            language=language,
+            complexity="low"
+        )
 
 # Initialize orchestrator
 orchestrator = MockOrchestrator()
