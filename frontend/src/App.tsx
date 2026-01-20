@@ -55,7 +55,15 @@ function App() {
         }
       );
 
-      setResult(response.data.data);
+      // The backend returns QueryResponse with nested data structure
+      const resultData = response.data.data;
+      const fullResult = {
+        ...resultData,
+        agents_used: response.data.agents_involved || AGENTS,
+        processing_time: response.data.processing_time_ms || 0
+      };
+      
+      setResult(fullResult);
     } catch (err) {
       const message = axios.isAxiosError(err)
         ? err.response?.data?.detail || 'Failed to generate code'
